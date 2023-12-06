@@ -56,19 +56,20 @@ public class Grid(Bounds bounds)
 	public static int CountLivingNeighbors(bool[,] grid, Point2D location)
 		=> CountLivingNeighbors(grid, new(grid.GetLength(0), grid.GetLength(1)), location);
 
-	public Task ScrambleAsync(Random random, int density, CancellationToken cancellationToken = default)
+	public Task ScrambleAsync(int density, Random? random = null, CancellationToken cancellationToken = default)
 	{
+		random ??= new();
 		var (width, height) = Bounds;
-		return Parallel.ForAsync(0, height, cancellationToken, (row, ct) =>
+		return Parallel.ForAsync(0, height, cancellationToken, async (row, ct) =>
 		{
 			for (int col = 0; col < width; col++)
 			{
 				ct.ThrowIfCancellationRequested();
 				var cell = GetCell(col, row);
-				cell.Value = random.Next(density) == 0;
+				lock(random)
+					cell.Value = random.Next(density) == 0;
+				await Task.Yield();
 			}
-
-			return ValueTask.CompletedTask;
 		});
 	}
 
@@ -80,7 +81,7 @@ public class Grid(Bounds bounds)
 	public Task NextAsync(Grid target, CancellationToken cancellationToken = default)
 	{
 		var (width, height) = Bounds;
-		return Parallel.ForAsync(0, height, cancellationToken, (row, ct) =>
+		return Parallel.ForAsync(0, height, cancellationToken, async (row, ct) =>
 		{
 			for (int col = 0; col < width; col++)
 			{
@@ -88,9 +89,8 @@ public class Grid(Bounds bounds)
 				var cell = GetCell(col, row);
 				var count = cell.CountLivingNeighbors();
 				target.GetCell(col, row).Value = cell ? count is 2 or 3 : count is 3;
+				await Task.Yield();
 			}
-
-			return ValueTask.CompletedTask;
 		});
 	}
 
