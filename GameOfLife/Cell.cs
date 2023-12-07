@@ -8,21 +8,25 @@ public record Cell
 		Location = location;
 		IsInBounds = grid.Bounds.IsInBounds(location);
 
-		_localGrid = new Lazy<Cell>[3, 3];
-		_localGrid[0, 0] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(-1, -1)));
-		_localGrid[1, 0] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(0, -1)));
-		_localGrid[2, 0] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(1, -1)));
-		_localGrid[0, 1] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(-1, 0)));
-		_localGrid[1, 1] = new Lazy<Cell>(this);
-		_localGrid[2, 1] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(1, 0)));
-		_localGrid[0, 2] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(-1, 1)));
-		_localGrid[1, 2] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(0, 1)));
-		_localGrid[2, 2] = new Lazy<Cell>(() => grid.GetCell(Location.Offset(1, 1)));
+		_localGrid = new Lazy<Cell[,]>(() =>
+		{
+			var lg = new Cell[3, 3];
+			lg[0, 0] = grid.GetCell(location.Offset(-1, -1));
+			lg[1, 0] = grid.GetCell(location.Offset(0, -1));
+			lg[2, 0] = grid.GetCell(location.Offset(1, -1));
+			lg[0, 1] = grid.GetCell(location.Offset(-1, 0));
+			lg[1, 1] = this;
+			lg[2, 1] = grid.GetCell(location.Offset(1, 0));
+			lg[0, 2] = grid.GetCell(location.Offset(-1, 1));
+			lg[1, 2] = grid.GetCell(location.Offset(0, 1));
+			lg[2, 2] = grid.GetCell(location.Offset(1, 1));
+			return lg;
+		});
 	}
 
 	private readonly Grid _grid;
 
-	private readonly Lazy<Cell>[,] _localGrid;
+	private readonly Lazy<Cell[,]> _localGrid;
 
 	public Point2D Location { get; }
 
@@ -33,7 +37,7 @@ public record Cell
 		if (x < -1 || y < -1 || x > 1 || y > 1)
 			return _grid.GetCell(Location.Offset(x, y));
 
-		return _localGrid[x + 1, y + 1].Value;
+		return _localGrid.Value[x + 1, y + 1];
 	}
 
 	public bool Value { get; set; }
@@ -41,14 +45,15 @@ public record Cell
 	public int CountLivingNeighbors()
 	{
 		int count = 0;
-		if (_localGrid[0, 0].Value) count++;
-		if (_localGrid[1, 0].Value) count++;
-		if (_localGrid[2, 0].Value) count++;
-		if (_localGrid[0, 1].Value) count++;
-		if (_localGrid[2, 1].Value) count++;
-		if (_localGrid[0, 2].Value) count++;
-		if (_localGrid[1, 2].Value) count++;
-		if (_localGrid[2, 2].Value) count++;
+		var lg = _localGrid.Value;
+		if (lg[0, 0]) count++;
+		if (lg[1, 0]) count++;
+		if (lg[2, 0]) count++;
+		if (lg[0, 1]) count++;
+		if (lg[2, 1]) count++;
+		if (lg[0, 2]) count++;
+		if (lg[1, 2]) count++;
+		if (lg[2, 2]) count++;
 		return count;
 	}
 
