@@ -9,9 +9,9 @@ namespace GameOfLife.App;
 
 public class DrawingCanvas : Control
 {
-	private const int BoxSize = 5;
-	private const int WidthInBoxes = 160;
-	private const int HeightInBoxes = 80;
+	private const int BoxSize = 3;
+	private const int WidthInBoxes = 240;
+	private const int HeightInBoxes = 120;
 	private const int Delay = 100;
 	private const int ScrambleDensity = 3;
 
@@ -36,7 +36,7 @@ public class DrawingCanvas : Control
 
 		_timer.Tick += UpdateDrawing;
 
-		_next = grid.ScrambleAsync(ScrambleDensity)
+		_next = grid.ScrambleSymmetricAsync(ScrambleDensity)
 			.ContinueWith(
 				_ => _timer.Start(),
 				TaskContinuationOptions.OnlyOnRanToCompletion);
@@ -52,12 +52,14 @@ public class DrawingCanvas : Control
 		base.Render(context);
 
 		_next.Wait();
+
+		// Give the draw phase max CPU.
+		Draw(context);
+
 		_next = grid.NextAsync(grid2)
 			.ContinueWith(
 				_ => (grid2, grid) = (grid, grid2),
 				TaskContinuationOptions.OnlyOnRanToCompletion);
-
-		Draw(context);
 	}
 
 	private void Draw(DrawingContext context)

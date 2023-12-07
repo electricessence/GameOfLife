@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 
 namespace GameOfLife;
 
@@ -66,8 +67,40 @@ public class Grid(Bounds bounds)
 			{
 				ct.ThrowIfCancellationRequested();
 				var cell = GetCell(col, row);
+				bool value;
 				lock(random)
-					cell.Value = random.Next(density) == 0;
+					value = random.Next(density) == 0;
+				cell.Value = value;
+				await Task.Yield();
+			}
+		});
+	}
+
+	public Task ScrambleSymmetricAsync(int density, Random? random = null, CancellationToken cancellationToken = default)
+	{
+		random ??= new();
+		var (width, height) = Bounds;
+		var halfWidth = width / 2;
+		var halfHeight = height / 2;
+		var lastX = width - 1;
+		var lastY = height - 1;
+
+		return Parallel.ForAsync(0, halfHeight, cancellationToken, async (row, ct) =>
+		{
+			for (int col = 0; col < halfWidth; col++)
+			{
+				ct.ThrowIfCancellationRequested();
+
+				var rCol = lastX - col;
+				var cellTL = GetCell(col, row);
+				var cellTR = GetCell(rCol, row);
+				var bRow = lastY - row;
+				var cellBL = GetCell(col, bRow);
+				var cellBR = GetCell(rCol, bRow);
+				bool value;
+				lock (random)
+					value = random.Next(density) == 0;
+				cellTL.Value = cellTR.Value = cellBL.Value = cellBR.Value = value;
 				await Task.Yield();
 			}
 		});
