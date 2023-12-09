@@ -42,6 +42,13 @@ public record Cell
 
 	public bool Value { get; set; }
 
+	public bool SetValueIfInBounds(bool value)
+	{
+		if (!IsInBounds) return false;
+		Value = value;
+		return true;
+	}
+
 	public int CountLivingNeighbors()
 	{
 		int count = 0;

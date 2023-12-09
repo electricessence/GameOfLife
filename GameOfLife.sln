@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameOfLife", "GameOfLife\Ga
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameOfLife.Console", "GameOfLife.Console\GameOfLife.Console.csproj", "{2F999A0E-24DE-4C9C-A17A-6F9851EBA857}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameOfLife.App", "GameOfLife.App\GameOfLife.App.csproj", "{42D323F6-7A61-4ECB-ACDC-2DAE1A538C2E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameOfLife.App", "GameOfLife.App\GameOfLife.App.csproj", "{42D323F6-7A61-4ECB-ACDC-2DAE1A538C2E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6DE9DDE9-DE38-4160-8E18-F20653FB9191}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

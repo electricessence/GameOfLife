@@ -76,7 +76,7 @@ public class Grid(Bounds bounds)
 		});
 	}
 
-	public Task ScrambleSymmetricAsync(int density, Random? random = null, CancellationToken cancellationToken = default)
+	public Task ScrambleQuadSymmetricAsync(int density, Random? random = null, CancellationToken cancellationToken = default)
 	{
 		random ??= new();
 		var (width, height) = Bounds;
@@ -106,26 +106,57 @@ public class Grid(Bounds bounds)
 		});
 	}
 
+
+	public Task ScrambleRadialSymmetricAsync(int density, Random? random = null, CancellationToken cancellationToken = default)
+	{
+		random ??= new();
+		var (width, height) = Bounds;
+		var halfWidth = width / 2;
+		var halfHeight = height / 2;
+		var lastX = width - 1;
+		var lastY = height - 1;
+
+		return Parallel.ForAsync(0, halfHeight, cancellationToken, async (row, ct) =>
+		{
+			for (int col = 0; col < width; col++)
+			{
+				ct.ThrowIfCancellationRequested();
+
+				var rCol = lastX - col;
+				var bRow = lastY - row;
+				var cellT = GetCell(col, row);
+				var cellB = GetCell(rCol, bRow);
+				bool value;
+				lock (random)
+					value = random.Next(density) == 0;
+				cellT.Value = cellB.Value = value;
+				await Task.Yield();
+			}
+		});
+	}
+
 	/* Any live cell with fewer than two live neighbours dies, as if by underpopulation.
      * Any live cell with two or three live neighbours lives on to the next generation.
      * Any live cell with more than three live neighbours dies, as if by overpopulation.
      * Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. */
 
 	public Task NextAsync(Grid target, CancellationToken cancellationToken = default)
-	{
-		var (width, height) = Bounds;
-		return Parallel.ForAsync(0, height, cancellationToken, async (row, ct) =>
+		// Guarantee deferred execution.
+		=> Task.Run(async () =>
 		{
-			for (int col = 0; col < width; col++)
+			var (width, height) = Bounds;
+			await Parallel.ForAsync(0, height, cancellationToken, async (row, ct) =>
 			{
-				ct.ThrowIfCancellationRequested();
-				var cell = GetCell(col, row);
-				var count = cell.CountLivingNeighbors();
-				target.GetCell(col, row).Value = cell ? count is 2 or 3 : count is 3;
-				await Task.Yield();
-			}
-		});
-	}
+				for (int col = 0; col < width; col++)
+				{
+					ct.ThrowIfCancellationRequested();
+					var cell = GetCell(col, row);
+					var count = cell.CountLivingNeighbors();
+					target.GetCell(col, row).Value = cell ? count is 2 or 3 : count is 3;
+					await Task.Yield();
+				}
+			});
+		}, cancellationToken);
 
 	public IEnumerable<Cell> GetRow(int y)
 	{
