@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,6 +27,9 @@ public class DrawingCanvas : Control
 	Task _next;
 
 	readonly ConcurrentQueue<Point2D> _pointQueue = new();
+
+	readonly ConcurrentQueue<List<Rect>> _pool = new();
+	readonly ConcurrentQueue<List<Rect>> _rectQueue = new();
 
 	public DrawingCanvas()
 	{
@@ -65,6 +69,27 @@ public class DrawingCanvas : Control
 			c.GetOffset(0, -1).SetValueIfInBounds(true);
 		}
 
+		List<Rect> rects = _pool.TryDequeue(out var r) ? r : [];
+		foreach (var row in grid.Rows)
+		{
+			foreach (var cell in row)
+			{
+				var (x, y) = cell.Location;
+				if (cell)
+				{
+					var rect = new Rect(x * BoxSize, y * BoxSize, BoxSize, BoxSize);
+					rects.Add(rect);
+					//context.FillRectangle(Foreground, rect);
+				}
+			}
+		}
+		_rectQueue.Enqueue(rects);
+
+		_next = grid.NextAsync(grid2)
+			.ContinueWith(
+				_ => (grid2, grid) = (grid, grid2),
+				TaskContinuationOptions.OnlyOnRanToCompletion);
+
 		InvalidateVisual(); // Invalidate to redraw
 	}
 
@@ -74,28 +99,20 @@ public class DrawingCanvas : Control
 
 		// Give the draw phase max CPU.
 		Draw(context);
-
-		_next = grid.NextAsync(grid2)
-			.ContinueWith(
-				_ => (grid2, grid) = (grid, grid2),
-				TaskContinuationOptions.OnlyOnRanToCompletion);
 	}
 
 	private void Draw(DrawingContext context)
 	{
+		List<Rect>? rects = null;
+		while (_rectQueue.TryDequeue(out var r)) rects = r; // Skip any missed frames.
+		if (rects is null) return;
+
 		context.FillRectangle(Background, new Rect(0, 0, WidthInBoxes * BoxSize, HeightInBoxes * BoxSize));
-		foreach (var row in grid.Rows)
-		{
-			foreach (var cell in row)
-			{
-				var (x, y) = cell.Location;
-				if (cell)
-				{
-					var rect = new Rect(x * BoxSize, y * BoxSize, BoxSize, BoxSize);
-					context.FillRectangle(Foreground, rect);
-				}
-			}
-		}
+		foreach (var rect in rects)
+			context.FillRectangle(Foreground, rect);
+
+		rects.Clear();
+		_pool.Enqueue(rects);
 	}
 
 	private int _pressed;
@@ -116,7 +133,7 @@ public class DrawingCanvas : Control
 
 	private void PointerMovedHandler(object? sender, PointerEventArgs e)
 	{
-		if(_pressed == 1) AddPointerEvent(sender, e);
+		if (_pressed == 1) AddPointerEvent(sender, e);
 	}
 
 	private void PointerReleasedHandler(object? sender, PointerReleasedEventArgs e)
