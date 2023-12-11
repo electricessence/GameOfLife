@@ -13,7 +13,8 @@ namespace GameOfLife.App;
 
 public class DrawingCanvas : Control
 {
-	private const int BoxSize = 5;
+	private const int BoxSize = 7;
+	private const int BoxSizePlus = BoxSize + 2;
 	private const int WidthInBoxes = 160;
 	private const int HeightInBoxes = 80;
 	private const int Delay = 100;
@@ -21,6 +22,7 @@ public class DrawingCanvas : Control
 
 	private static readonly SolidColorBrush Background = new(Color.FromArgb(255, 16, 16, 16));
 	private static readonly SolidColorBrush Foreground = new(Color.FromArgb(255, 200, 200, 200));
+	private static readonly Pen ForegroundPen = new(Foreground, 1);
 	private readonly DispatcherTimer _timer;
 	private Grid grid;
 	private Grid grid2;
@@ -77,7 +79,7 @@ public class DrawingCanvas : Control
 				var (x, y) = cell.Location;
 				if (cell)
 				{
-					var rect = new Rect(x * BoxSize, y * BoxSize, BoxSize, BoxSize);
+					var rect = new Rect(x * BoxSize - 1, y * BoxSize - 1, BoxSizePlus, BoxSizePlus);
 					rects.Add(rect);
 					//context.FillRectangle(Foreground, rect);
 				}
@@ -109,9 +111,11 @@ public class DrawingCanvas : Control
 
 		context.FillRectangle(Background, new Rect(0, 0, WidthInBoxes * BoxSize, HeightInBoxes * BoxSize));
 		foreach (var rect in rects)
-			context.FillRectangle(Foreground, rect);
+        {
+            context.FillRectangle(Foreground, rect, 2);
+        }
 
-		rects.Clear();
+        rects.Clear();
 		_pool.Enqueue(rects);
 	}
 
